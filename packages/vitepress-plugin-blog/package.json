@@ -1,0 +1,77 @@
+{
+  "name": "vitepress-plugin-blog",
+  "version": "0.1.0",
+  "description": "A VitePress plugin for adding blog functionality with automatic post discovery, layouts, and components",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./sidebar": {
+      "import": {
+        "types": "./dist/sidebar.d.ts",
+        "default": "./dist/sidebar.js"
+      },
+      "require": {
+        "types": "./dist/sidebar.d.ts",
+        "default": "./dist/sidebar.cjs"
+      }
+    },
+    "./style.css": "./dist/style.css",
+    "./data": {
+      "import": "./dist/data/blogPosts.data.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && npm run copy-assets",
+    "copy-assets": "node scripts/copy-assets.js",
+    "watch": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "vitepress",
+    "vitepress-plugin",
+    "blog",
+    "markdown",
+    "documentation"
+  ],
+  "author": "humanbydefinition",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/humanbydefinition/vitepress-plugin-blog.git"
+  },
+  "bugs": {
+    "url": "https://github.com/humanbydefinition/vitepress-plugin-blog/issues"
+  },
+  "homepage": "https://github.com/humanbydefinition/vitepress-plugin-blog#readme",
+  "peerDependencies": {
+    "vitepress": ">=1.0.0",
+    "vue": ">=3.3.0"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0",
+    "vite-plugin-dts": "^4.3.0",
+    "vitepress": "^1.5.0",
+    "vue": "^3.5.13"
+  }
+}

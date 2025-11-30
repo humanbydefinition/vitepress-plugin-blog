@@ -1,0 +1,514 @@
+/**
+ * VitePress Blog Plugin Styles
+ * 
+ * Minimal styles that extend VitePress default theme.
+ * Uses VitePress CSS variables for consistency.
+ * 
+ * Note: Some !important declarations are needed to override
+ * VitePress .vp-doc styles when blog components are rendered
+ * inside the doc container.
+ */
+
+/* ==========================================================================
+   Blog Index / Post List
+   ========================================================================== */
+
+.blog-index {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Controls: Search & Filters */
+.blog-index__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: var(--vp-c-bg-soft);
+  transition: background-color 0.25s;
+}
+
+.blog-index__search {
+  width: 100%;
+  max-width: 400px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-border);
+  background-color: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  line-height: 20px;
+  transition: border-color 0.25s;
+}
+
+.blog-index__search::placeholder {
+  color: var(--vp-c-text-3);
+}
+
+.blog-index__search:focus {
+  outline: none;
+  border-color: var(--vp-c-brand-1);
+}
+
+.blog-index__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.blog-index__tag {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background-color: var(--vp-c-default-soft);
+  color: var(--vp-c-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.25s, border-color 0.25s, background-color 0.25s;
+}
+
+.blog-index__tag:hover {
+  color: var(--vp-c-brand-1);
+}
+
+.blog-index__tag--active {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+  background-color: var(--vp-c-brand-soft);
+}
+
+/* Post Grid */
+.blog-index__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .blog-index__grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+/* Blog Card - Based on VPFeature patterns */
+.blog-card {
+  display: block;
+  border: 1px solid var(--vp-c-bg-soft);
+  border-radius: 12px;
+  background-color: var(--vp-c-bg-soft);
+  overflow: hidden;
+  transition: border-color 0.25s, background-color 0.25s;
+}
+
+.blog-card:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+.blog-card__link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit !important;
+  text-decoration: none !important;
+  font-weight: inherit !important;
+}
+
+.blog-card__link:hover {
+  text-decoration: none !important;
+}
+
+.blog-card__cover {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background-color: var(--vp-c-bg);
+}
+
+.blog-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.blog-card__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 16px;
+  gap: 6px;
+}
+
+.blog-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vp-c-text-3);
+}
+
+.blog-card__title {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--vp-c-text-1) !important;
+  text-decoration: none !important;
+  border: none !important;
+}
+
+.blog-card__link:hover .blog-card__title {
+  color: var(--vp-c-brand-1) !important;
+  text-decoration: none !important;
+}
+
+.blog-card__excerpt {
+  flex-grow: 1;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--vp-c-text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-card__footer {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--vp-c-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blog-card__author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
+.blog-card__avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--vp-c-bg);
+}
+
+.blog-card__tags {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.blog-card__tags li {
+  display: inline-flex !important;
+  padding: 2px 6px !important;
+  margin: 0 !important;
+  border-radius: 4px;
+  background-color: var(--vp-c-default-soft);
+  font-size: 11px !important;
+  font-weight: 500;
+  line-height: 16px !important;
+  color: var(--vp-c-text-3);
+  list-style: none !important;
+}
+
+.blog-card__tags li::before,
+.blog-card__tags li::marker {
+  display: none !important;
+  content: none !important;
+}
+
+.blog-index__empty {
+  padding: 40px 20px;
+  border-radius: 12px;
+  border: 1px dashed var(--vp-c-divider);
+  text-align: center;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+
+/* Pagination - Based on VPDocFooter patterns */
+.blog-index__pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background-color: var(--vp-c-bg-soft);
+}
+
+.blog-index__pagination-info {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
+.blog-index__pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blog-index__pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background-color: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.blog-index__pagination-btn:hover:not(:disabled) {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+.blog-index__pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.blog-index__pagination-current {
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
+.blog-index__page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
+.blog-index__page-size-select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background-color: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.blog-index__page-size-select:hover,
+.blog-index__page-size-select:focus {
+  border-color: var(--vp-c-brand-1);
+  outline: none;
+}
+
+@media (max-width: 640px) {
+  .blog-index__pagination {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .blog-index__pagination-controls {
+    justify-content: center;
+  }
+
+  .blog-index__page-size {
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   Blog Post Layout
+   ========================================================================== */
+
+.blog-post__meta {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.blog-post__breadcrumbs {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vp-c-text-3);
+}
+
+.blog-post__breadcrumbs a {
+  color: var(--vp-c-text-2);
+  text-decoration: none !important;
+  transition: color 0.25s;
+}
+
+.blog-post__breadcrumbs a:hover {
+  color: var(--vp-c-brand-1);
+}
+
+.blog-post__title {
+  margin: 0 !important;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .blog-post__title {
+    font-size: 36px;
+    line-height: 44px;
+  }
+}
+
+.blog-post__description {
+  margin: 12px 0 0 !important;
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--vp-c-text-2);
+}
+
+.blog-post__details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vp-c-text-3);
+}
+
+.blog-post__author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blog-post__avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--vp-c-bg-soft);
+}
+
+.blog-post__tags {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 6px !important;
+  margin: 12px 0 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.blog-post__tags li {
+  display: inline-flex !important;
+  padding: 3px 8px !important;
+  margin: 0 !important;
+  border-radius: 4px;
+  background-color: var(--vp-c-default-soft);
+  font-size: 12px !important;
+  font-weight: 500;
+  line-height: 16px !important;
+  color: var(--vp-c-text-2);
+  list-style: none !important;
+}
+
+.blog-post__tags li::before,
+.blog-post__tags li::marker {
+  display: none !important;
+  content: none !important;
+}
+
+.blog-post__cover {
+  margin: 20px 0 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.blog-post__cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Post Footer & Pagination - Based on VPDocFooter */
+.blog-post__footer {
+  margin-top: 48px;
+}
+
+.blog-post__pagination {
+  display: grid;
+  grid-row-gap: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+@media (min-width: 640px) {
+  .blog-post__pagination {
+    grid-template-columns: repeat(2, 1fr);
+    grid-column-gap: 12px;
+  }
+}
+
+.blog-post__pagination-link {
+  display: block;
+  padding: 10px 14px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  text-decoration: none !important;
+  transition: border-color 0.25s;
+}
+
+.blog-post__pagination-link:hover {
+  border-color: var(--vp-c-brand-1);
+  text-decoration: none !important;
+}
+
+.blog-post__pagination-link.next {
+  text-align: right;
+}
+
+.pagination-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--vp-c-text-2);
+}
+
+.pagination-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--vp-c-brand-1);
+  transition: color 0.25s;
+}
+
+.blog-post__pagination-spacer {
+  display: none;
+}
