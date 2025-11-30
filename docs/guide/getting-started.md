@@ -161,5 +161,4 @@ When you mark a page with `blogPost: true`, it automatically:
 ## Next Steps
 
 - Learn about [Configuration](/guide/configuration) options
-- Check out the [Examples](/examples/) for advanced usage
 - Visit the [Blog](/blog/) to see the plugin in action

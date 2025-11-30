@@ -65,14 +65,6 @@ export default defineConfig({
       '/blog/': generateBlogSidebarFromFiles(docsDir, {
         recentPostsCount: 5,
       }),
-      '/examples/': [
-        {
-          text: 'Examples',
-          items: [
-            { text: 'Basic Usage', link: '/examples/' },
-          ]
-        }
-      ]
     },
 
     socialLinks: [
