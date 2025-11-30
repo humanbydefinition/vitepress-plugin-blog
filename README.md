@@ -261,7 +261,7 @@ npm install
 npm run plugin:build
 
 # Start docs dev server
-npm run docs:dev
+npm run dev
 
 # Build everything for production
 npm run build
