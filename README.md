@@ -5,23 +5,28 @@
 
 Add blog functionality to your VitePress documentation with automatic post discovery, layouts, and components.
 
-## Features
+## ✨ Features
 
-- **Zero Config** - Works out of the box with sensible defaults
-- **Automatic Post Discovery** - Automatically finds and loads blog posts from your markdown files
-- **HMR Support** - Full hot module replacement support during development
-- **Customizable** - Configure layouts, components, and frontmatter keys
-- **Lightweight** - Minimal dependencies, built on VitePress's data loader API
+- **🚀 Zero Config** - Works out of the box with sensible defaults
+- **📝 Automatic Post Discovery** - Finds and loads blog posts from your markdown files
+- **🔥 HMR Support** - Full hot module replacement during development
+- **🎨 Beautiful Components** - Pre-styled blog index, cards, filters, and pagination
+- **🔍 Search & Filtering** - Built-in search and tag filtering
+- **📖 Reading Time** - Automatic reading time calculation
+- **👤 GitHub Avatars** - Auto-fetches avatars for GitHub usernames
+- **📑 Sidebar Generation** - Helper functions for VitePress sidebar config
+- **🎛️ Customizable** - Export individual components and composables for custom layouts
+- **📦 Lightweight** - Minimal dependencies, built on VitePress's data loader API
 
-## Installation
+## 📦 Installation
 
 ```bash
 npm install vitepress-plugin-blog
 ```
 
-## Usage
+## 🚀 Quick Start
 
-Add the plugin to your VitePress theme:
+### 1. Set up your theme
 
 ```typescript
 // .vitepress/theme/index.ts
@@ -33,13 +38,38 @@ import 'vitepress-plugin-blog/style.css'
 export default withBlogTheme(DefaultTheme) satisfies Theme
 ```
 
-That's it! Now you can create blog posts by adding markdown files with the `blogPost: true` frontmatter.
+### 2. Create the blog structure
 
-## Creating Blog Posts
+```
+docs/
+├── .vitepress/
+│   └── theme/
+│       └── index.ts
+├── blog/
+│   ├── index.md          # Blog listing page
+│   └── posts/
+│       └── my-first-post.md
+└── index.md
+```
 
-Create markdown files in `blog/posts/` directory with the following frontmatter:
+### 3. Create a blog listing page
 
 ```markdown
+<!-- blog/index.md -->
+---
+title: Blog
+aside: false
+---
+
+# Blog
+
+<BlogIndex />
+```
+
+### 4. Write your first post
+
+```markdown
+<!-- blog/posts/my-first-post.md -->
 ---
 blogPost: true
 title: My First Blog Post
@@ -49,34 +79,194 @@ author: your-github-username
 tags:
   - vitepress
   - blog
-cover: /images/cover.jpg
 ---
 
-Your blog post content here...
+Your content here...
 ```
 
-## Configuration
+That's it! Your blog is ready. 🎉
+
+## 📝 Post Frontmatter
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `blogPost` | `boolean` | **Required.** Marks the page as a blog post | - |
+| `title` | `string` | Post title | `'Untitled post'` |
+| `description` | `string` | Short description/excerpt | Auto-extracted |
+| `date` | `string` | Publication date (YYYY-MM-DD) | - |
+| `author` | `string` | Author name or GitHub username | `'Anonymous'` |
+| `tags` | `string[]` | Tags for filtering | `[]` |
+| `cover` | `string` | Cover image URL | - |
+| `published` | `boolean` | Set to `false` to hide the post | `true` |
+| `slug` | `string` | Custom URL slug | From filename |
+
+## ⚙️ Configuration
+
+### Plugin Options
 
 ```typescript
 withBlogTheme(DefaultTheme, {
-  // Frontmatter key that marks a page as a blog post (default: 'blogPost')
-  blogFrontmatterKey: 'blogPost',
+  // Frontmatter key that marks a page as a blog post
+  blogFrontmatterKey: 'blogPost', // default
 })
 ```
 
-## Development
+### Sidebar Generation
+
+Generate a blog sidebar in your VitePress config:
+
+```typescript
+// .vitepress/config.mts
+import { defineConfig } from 'vitepress'
+import { generateBlogSidebarFromFiles } from 'vitepress-plugin-blog/sidebar'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const docsDir = resolve(__dirname, '..')
+
+export default defineConfig({
+  themeConfig: {
+    sidebar: {
+      '/blog/': generateBlogSidebarFromFiles(docsDir, {
+        recentPostsCount: 5,      // Number of recent posts to show
+        allPostsLabel: 'All posts',
+        recentPostsLabel: 'Recent posts',
+        recentPostsCollapsed: false,
+      }),
+    },
+  },
+})
+```
+
+## 🧩 Components
+
+### BlogIndex
+
+The main blog listing component with search, filtering, and pagination.
+
+```vue
+<!-- Basic usage -->
+<BlogIndex />
+
+<!-- With custom pagination -->
+<BlogIndex :page-sizes="[5, 10, 20]" :default-page-size="10" />
+
+<!-- Control pagination visibility -->
+<BlogIndex pagination="always" />
+<BlogIndex pagination="auto" />   <!-- default -->
+<BlogIndex pagination="never" />
+```
+
+**Props:**
+- `pageSizes` — Array of page size options (default: `[5, 10, 20]`)
+- `defaultPageSize` — Initial page size (default: first value in `pageSizes`)
+- `pagination` — Controls visibility: `'always'` | `'auto'` | `'never'` (default: `'auto'`)
+
+### Individual Components
+
+For custom layouts, import components individually:
+
+```typescript
+import {
+  BlogCard,        // Individual post card
+  BlogFilters,     // Search and tag filters
+  BlogPagination,  // Pagination controls
+  BlogPostLayout,  // Single post layout
+} from 'vitepress-plugin-blog'
+```
+
+## 🪝 Composables
+
+### useBlogPosts
+
+Access blog posts data in any component:
+
+```vue
+<script setup>
+import { useBlogPosts } from 'vitepress-plugin-blog'
+
+const { posts, totalPosts, allTags } = useBlogPosts()
+</script>
+```
+
+**Returns:**
+- `posts` - Reactive array of all blog posts
+- `totalPosts` - Computed post count
+- `allTags` - Computed array of unique tags
+
+### useBlogNavigation
+
+Get previous/next post navigation:
+
+```vue
+<script setup>
+import { useBlogNavigation } from 'vitepress-plugin-blog'
+
+const { currentPost, prevPost, nextPost } = useBlogNavigation()
+</script>
+```
+
+**Returns:**
+- `currentPost` - The current post based on page URL
+- `prevPost` - Previous (newer) post
+- `nextPost` - Next (older) post
+- `currentIndex` - Index in posts array
+
+## 🛠️ Utilities
+
+```typescript
+import {
+  formatDate,          // Format date strings
+  parseDate,           // Parse date to timestamp
+  isGitHubUsername,    // Check if string is a GitHub username
+  getGitHubAvatarUrl,  // Get GitHub avatar URL
+} from 'vitepress-plugin-blog'
+```
+
+## 📁 Project Structure
+
+```
+vitepress-plugin-blog/
+├── src/
+│   ├── components/
+│   │   ├── BlogIndex.vue      # Main listing component
+│   │   ├── BlogCard.vue       # Post card component
+│   │   ├── BlogFilters.vue    # Search & tag filters
+│   │   └── BlogPagination.vue # Pagination controls
+│   ├── composables/
+│   │   ├── useBlogPosts.ts    # Posts data composable
+│   │   └── useBlogNavigation.ts # Navigation composable
+│   ├── layouts/
+│   │   └── BlogPostLayout.vue # Single post layout
+│   ├── utils/
+│   │   ├── date.ts            # Date utilities
+│   │   └── author.ts          # Author utilities
+│   ├── data/
+│   │   └── blogPosts.data.ts  # VitePress data loader
+│   ├── styles/
+│   │   └── blog.css           # Plugin styles
+│   ├── sidebar.ts             # Sidebar generation
+│   ├── types.ts               # TypeScript types
+│   └── index.ts               # Main entry point
+```
+
+## 🔧 Development
 
 ```bash
 # Install dependencies
 npm install
 
-# Build the plugin and start docs dev server
-npm run dev
+# Build the plugin
+npm run plugin:build
+
+# Start docs dev server
+npm run docs:dev
 
 # Build everything for production
 npm run build
 ```
 
-## License
+## 📄 License
 
-MIT
+MIT © [humanbydefinition](https://github.com/humanbydefinition)

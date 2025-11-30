@@ -49,7 +49,6 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Blog', link: '/blog/' },
-      { text: 'Examples', link: '/examples/' },
       { text: 'GitHub', link: 'https://github.com/humanbydefinition/vitepress-plugin-blog' }
     ],
 

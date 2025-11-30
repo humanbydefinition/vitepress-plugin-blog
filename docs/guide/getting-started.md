@@ -1,20 +1,34 @@
 # Getting Started
 
+This guide will walk you through setting up `vitepress-plugin-blog` in your VitePress project.
+
 ## Installation
 
-Install `vitepress-plugin-blog` using npm:
+Install the plugin using your preferred package manager:
 
-```bash
+::: code-group
+
+```bash [npm]
 npm install vitepress-plugin-blog
 ```
 
+```bash [pnpm]
+pnpm add vitepress-plugin-blog
+```
+
+```bash [yarn]
+yarn add vitepress-plugin-blog
+```
+
+:::
+
 ## Setup
 
-### 1. Create or update your theme
+### 1. Configure your theme
 
-Create a theme file at `.vitepress/theme/index.ts`:
+Create or update your theme file at `.vitepress/theme/index.ts`:
 
-```ts
+```typescript
 import type { Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import { withBlogTheme } from 'vitepress-plugin-blog'
@@ -23,65 +37,129 @@ import 'vitepress-plugin-blog/style.css'
 export default withBlogTheme(DefaultTheme) satisfies Theme
 ```
 
-### 2. Create your blog directory
+The `withBlogTheme` function wraps your base theme and adds:
+- Automatic blog post layout switching
+- Global blog components
+- Blog posts data injection
 
-Create a `blog/posts/` directory in your docs folder:
+### 2. Create your blog directory structure
+
+Create the following structure in your docs folder:
 
 ```
 docs/
 ├── .vitepress/
+│   ├── config.mts
 │   └── theme/
 │       └── index.ts
 ├── blog/
-│   ├── index.md        # Blog listing page
+│   ├── index.md          # Blog listing page
 │   └── posts/
-│       └── my-post.md  # Your blog posts
+│       ├── my-first-post.md
+│       └── another-post.md
 └── index.md
 ```
 
-### 3. Create a blog listing page
+### 3. Create the blog listing page
 
-Create `blog/index.md` with the BlogHome component:
+Create `blog/index.md` with the `BlogIndex` component:
 
 ```markdown
 ---
 title: Blog
+aside: false
+prev: false
+next: false
 ---
 
-<BlogHome />
+# Blog
+
+Welcome to my blog! Here you'll find articles about...
+
+<BlogIndex />
 ```
 
-### 4. Create your first post
+::: tip
+Setting `aside: false` gives the blog listing more horizontal space by hiding the sidebar on the right.
+:::
 
-Create a markdown file in `blog/posts/` with the following frontmatter:
+### 4. Write your first blog post
+
+Create a markdown file in `blog/posts/` with blog frontmatter:
 
 ```markdown
 ---
 blogPost: true
 title: My First Blog Post
-description: A short description of my post
+description: Learn how I set up my blog with VitePress
 date: 2024-01-15
 author: your-github-username
 tags:
   - vitepress
-  - blog
+  - tutorial
 ---
 
 # My First Blog Post
 
-Your content here...
+Welcome to my blog! This is my first post...
+```
+
+### 5. (Optional) Add blog sidebar
+
+Update your `.vitepress/config.mts` to include a blog sidebar:
+
+```typescript
+import { defineConfig } from 'vitepress'
+import { generateBlogSidebarFromFiles } from 'vitepress-plugin-blog/sidebar'
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const docsDir = resolve(__dirname, '..')
+
+export default defineConfig({
+  // ... other config
+  themeConfig: {
+    sidebar: {
+      '/blog/': generateBlogSidebarFromFiles(docsDir, {
+        recentPostsCount: 5,
+      }),
+    },
+  },
+})
 ```
 
 ## How It Works
 
-The plugin:
+The plugin uses VitePress's data loader API to:
 
-1. Scans your `blog/posts/` directory for markdown files
-2. Extracts frontmatter metadata (title, date, tags, etc.)
-3. Automatically uses the BlogPostLayout for pages with `blogPost: true`
-4. Provides global components for listing and displaying posts
+1. **Scan** the `blog/posts/` directory for markdown files
+2. **Extract** frontmatter metadata (title, date, tags, etc.)
+3. **Calculate** reading time based on word count
+4. **Sort** posts by date (newest first)
+5. **Filter** out unpublished posts (`published: false`)
+
+When you mark a page with `blogPost: true`, it automatically:
+- Uses the `BlogPostLayout` instead of the default layout
+- Shows post metadata (author, date, reading time)
+- Displays previous/next navigation
+
+## Frontmatter Reference
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `blogPost` | `boolean` | ✅ | - | Marks the page as a blog post |
+| `title` | `string` | - | `'Untitled post'` | Post title |
+| `description` | `string` | - | Auto-extracted | Short description |
+| `date` | `string` | - | - | Publication date (YYYY-MM-DD) |
+| `author` | `string` | - | `'Anonymous'` | Author name or GitHub username |
+| `tags` | `string[]` | - | `[]` | Tags for filtering |
+| `cover` | `string` | - | - | Cover image URL |
+| `published` | `boolean` | - | `true` | Set to `false` to hide |
+| `slug` | `string` | - | From filename | Custom URL slug |
 
 ## Next Steps
 
-- Check out the [Configuration](/guide/configuration) options
-- See the [Examples](/examples/) for more usage patterns
+- Learn about [Configuration](/guide/configuration) options
+- Check out the [Examples](/examples/) for advanced usage
+- Visit the [Blog](/blog/) to see the plugin in action

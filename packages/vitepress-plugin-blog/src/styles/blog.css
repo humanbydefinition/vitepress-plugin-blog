@@ -310,12 +310,13 @@
 }
 
 .blog-index__page-size-select {
-  padding: 4px 8px;
+  padding: 4px 12px;
   border-radius: 6px;
   border: 1px solid var(--vp-c-divider);
   background-color: var(--vp-c-bg);
   color: var(--vp-c-text-1);
   font-size: 13px;
+  text-align: center;
   cursor: pointer;
   transition: border-color 0.25s;
 }

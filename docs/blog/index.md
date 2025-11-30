@@ -6,10 +6,10 @@ next: false
 lastUpdated: false
 ---
 
-# a very good blog
+# Blog
 
 Stay up to date with release notes, deep dives, and tips from the team and community.
 
 <hr />
 
-<BlogHome />
+<BlogIndex pagination="auto" />
