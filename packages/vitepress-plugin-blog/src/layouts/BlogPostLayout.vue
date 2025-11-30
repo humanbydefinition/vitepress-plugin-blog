@@ -4,7 +4,7 @@
       <article class="blog-post">
         <header class="blog-post__meta">
           <p class="blog-post__breadcrumbs">
-            <a href="/blog/">Blog</a>
+            <a :href="withBase('/blog/')">Blog</a>
             <span aria-hidden="true"> / </span>
             <span>{{ frontmatter.title }}</span>
           </p>
@@ -48,12 +48,12 @@
     <template #doc-after>
       <footer class="blog-post__footer">
         <div v-if="prevPost || nextPost" class="blog-post__pagination">
-          <a v-if="prevPost" :href="prevPost.url" class="blog-post__pagination-link prev">
+          <a v-if="prevPost" :href="withBase(prevPost.url)" class="blog-post__pagination-link prev">
             <span class="pagination-label">← Newer</span>
             <span class="pagination-title">{{ prevPost.title }}</span>
           </a>
           <span class="blog-post__pagination-spacer" aria-hidden="true"></span>
-          <a v-if="nextPost" :href="nextPost.url" class="blog-post__pagination-link next">
+          <a v-if="nextPost" :href="withBase(nextPost.url)" class="blog-post__pagination-link next">
             <span class="pagination-label">Older →</span>
             <span class="pagination-title">{{ nextPost.title }}</span>
           </a>
@@ -67,7 +67,7 @@
 import { computed, inject, ref } from 'vue'
 import type { Ref } from 'vue'
 import DefaultTheme from 'vitepress/theme'
-import { useData } from 'vitepress'
+import { useData, withBase } from 'vitepress'
 import { blogPostsKey } from '../injectionKeys'
 import type { BlogPostEntry } from '../types'
 

@@ -26,7 +26,7 @@
 
     <div v-if="filteredPosts.length" class="blog-index__grid">
       <article v-for="post in filteredPosts" :key="post.url" class="blog-card">
-        <a :href="post.url" class="blog-card__link">
+        <a :href="withBase(post.url)" class="blog-card__link">
           <div v-if="post.cover" class="blog-card__cover">
             <img :src="post.cover" :alt="post.title" loading="lazy" />
           </div>
@@ -135,6 +135,7 @@
 <script setup lang="ts">
 import { computed, ref, inject, watch } from 'vue'
 import type { Ref } from 'vue'
+import { withBase } from 'vitepress'
 import { blogPostsKey } from '../injectionKeys'
 import type { BlogPostEntry } from '../types'
 
