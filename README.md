@@ -159,9 +159,9 @@ The main blog listing component with search, filtering, and pagination.
 ```
 
 **Props:**
-- `pageSizes` — Array of page size options (default: `[5, 10, 20]`)
-- `defaultPageSize` — Initial page size (default: first value in `pageSizes`)
-- `pagination` — Controls visibility: `'always'` | `'auto'` | `'never'` (default: `'auto'`)
+- `pageSizes` - Array of page size options (default: `[5, 10, 20]`)
+- `defaultPageSize` - Initial page size (default: first value in `pageSizes`)
+- `pagination` - Controls visibility: `'always'` | `'auto'` | `'never'` (default: `'auto'`)
 
 ### Individual Components
 
@@ -266,7 +266,3 @@ npm run docs:dev
 # Build everything for production
 npm run build
 ```
-
-## 📄 License
-
-MIT © [humanbydefinition](https://github.com/humanbydefinition)
