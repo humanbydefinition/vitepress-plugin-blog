@@ -24,7 +24,30 @@ yarn add vitepress-plugin-blog
 
 ## Setup
 
-### 1. Configure your theme
+### 1. Add the Vite plugin
+
+Update your `.vitepress/config.mts` to include the blog plugin:
+
+```typescript
+import { defineConfig } from 'vitepress'
+import { blogPlugin } from 'vitepress-plugin-blog/plugin'
+
+export default defineConfig({
+  vite: {
+    plugins: [
+      blogPlugin()
+    ]
+  }
+})
+```
+
+The `blogPlugin` automatically:
+- Scans the `blog/posts/` directory for markdown files
+- Extracts frontmatter and calculates reading time
+- Provides data via virtual modules
+- Enables full HMR support during development
+
+### 2. Configure your theme
 
 Create or update your theme file at `.vitepress/theme/index.ts`:
 
@@ -39,8 +62,8 @@ export default withBlogTheme(DefaultTheme) satisfies Theme
 
 The `withBlogTheme` function wraps your base theme and adds:
 - Automatic blog post layout switching
-- Global blog components
-- Blog posts data injection
+- Global blog components (`BlogIndex`, `BlogPostList`, `BlogHome`)
+- HMR listener setup for live updates during development
 
 ### 2. Create your blog directory structure
 
@@ -104,45 +127,68 @@ tags:
 Welcome to my blog! This is my first post...
 ```
 
-### 5. (Optional) Add blog sidebar
+### 5. (Optional) Add blog sidebar with HMR
 
-Update your `.vitepress/config.mts` to include a blog sidebar:
+Update your `.vitepress/config.mts` to include a blog sidebar. For the best development experience, pass the same sidebar options to both `blogPlugin()` and `generateBlogSidebarFromFiles()`:
 
 ```typescript
 import { defineConfig } from 'vitepress'
 import { generateBlogSidebarFromFiles } from 'vitepress-plugin-blog/sidebar'
+import { blogPlugin } from 'vitepress-plugin-blog/plugin'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const docsDir = resolve(__dirname, '..')
 
+// Shared sidebar options for static generation and HMR
+const sidebarOptions = {
+  recentPostsCount: 5,
+}
+
 export default defineConfig({
-  // ... other config
+  vite: {
+    plugins: [
+      blogPlugin({
+        sidebar: sidebarOptions, // Enable sidebar HMR
+      })
+    ]
+  },
   themeConfig: {
     sidebar: {
-      '/blog/': generateBlogSidebarFromFiles(docsDir, {
-        recentPostsCount: 5,
-      }),
+      '/blog/': generateBlogSidebarFromFiles(docsDir, sidebarOptions),
     },
   },
 })
 ```
 
+::: tip Sidebar HMR
+By passing `sidebar` options to `blogPlugin()`, the sidebar's "Recent posts" section will update automatically when you edit blog post titles during development—no page reload required!
+:::
+
 ## How It Works
 
-The plugin uses VitePress's data loader API to:
+The plugin uses a Vite plugin (`blogPlugin`) combined with a theme wrapper (`withBlogTheme`) to:
 
 1. **Scan** the `blog/posts/` directory for markdown files
 2. **Extract** frontmatter metadata (title, date, tags, etc.)
 3. **Calculate** reading time based on word count
 4. **Sort** posts by date (newest first)
 5. **Filter** out unpublished posts (`published: false`)
+6. **Provide** data via virtual modules for optimal SSR/SSG support
 
 When you mark a page with `blogPost: true`, it automatically:
 - Uses the `BlogPostLayout` instead of the default layout
 - Shows post metadata (author, date, reading time)
 - Displays previous/next navigation
+
+### HMR (Hot Module Replacement)
+
+During development, changes to blog posts are reflected instantly:
+
+- **Post content**: Updates as you type
+- **Blog listing**: Updates when posts are added, removed, or modified
+- **Sidebar**: "Recent posts" titles update when you edit post titles (requires `sidebar` option in `blogPlugin`)
 
 ## Frontmatter Reference
 

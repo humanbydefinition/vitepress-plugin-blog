@@ -9,14 +9,14 @@ Add blog functionality to your VitePress documentation with automatic post disco
 
 - **🚀 Zero Config** - Works out of the box with sensible defaults
 - **📝 Automatic Post Discovery** - Finds and loads blog posts from your markdown files
-- **🔥 HMR Support** - Full hot module replacement during development
+- **🔥 Full HMR Support** - Posts, blog listing, and sidebar update instantly during development
 - **🎨 Beautiful Components** - Pre-styled blog index, cards, filters, and pagination
 - **🔍 Search & Filtering** - Built-in search and tag filtering
 - **📖 Reading Time** - Automatic reading time calculation
 - **👤 GitHub Avatars** - Auto-fetches avatars for GitHub usernames
-- **📑 Sidebar Generation** - Helper functions for VitePress sidebar config
+- **📑 Sidebar Generation** - Helper functions with HMR support for VitePress sidebar
 - **🎛️ Customizable** - Export individual components and composables for custom layouts
-- **📦 Lightweight** - Minimal dependencies, built on VitePress's data loader API
+- **📦 Lightweight** - Minimal dependencies, uses Vite virtual modules
 
 ## 📦 Installation
 
@@ -26,7 +26,21 @@ npm install vitepress-plugin-blog
 
 ## 🚀 Quick Start
 
-### 1. Set up your theme
+### 1. Add the Vite plugin
+
+```typescript
+// .vitepress/config.mts
+import { defineConfig } from 'vitepress'
+import { blogPlugin } from 'vitepress-plugin-blog/plugin'
+
+export default defineConfig({
+  vite: {
+    plugins: [blogPlugin()]
+  }
+})
+```
+
+### 2. Set up your theme
 
 ```typescript
 // .vitepress/theme/index.ts
@@ -38,11 +52,12 @@ import 'vitepress-plugin-blog/style.css'
 export default withBlogTheme(DefaultTheme) satisfies Theme
 ```
 
-### 2. Create the blog structure
+### 3. Create the blog structure
 
 ```
 docs/
 ├── .vitepress/
+│   ├── config.mts
 │   └── theme/
 │       └── index.ts
 ├── blog/
@@ -52,7 +67,7 @@ docs/
 └── index.md
 ```
 
-### 3. Create a blog listing page
+### 4. Create a blog listing page
 
 ```markdown
 <!-- blog/index.md -->
@@ -66,7 +81,7 @@ aside: false
 <BlogIndex />
 ```
 
-### 4. Write your first post
+### 5. Write your first post
 
 ```markdown
 <!-- blog/posts/my-first-post.md -->
@@ -102,7 +117,19 @@ That's it! Your blog is ready. 🎉
 
 ## ⚙️ Configuration
 
-### Plugin Options
+### Vite Plugin Options
+
+```typescript
+blogPlugin({
+  postsDir: 'blog/posts',     // Directory containing blog posts
+  wordsPerMinute: 220,        // For reading time calculation
+  sidebar: {                   // Enable sidebar HMR (optional)
+    recentPostsCount: 5,
+  },
+})
+```
+
+### Theme Options
 
 ```typescript
 withBlogTheme(DefaultTheme, {
@@ -111,29 +138,40 @@ withBlogTheme(DefaultTheme, {
 })
 ```
 
-### Sidebar Generation
+### Sidebar Generation with HMR
 
-Generate a blog sidebar in your VitePress config:
+Generate a blog sidebar with full HMR support:
 
 ```typescript
 // .vitepress/config.mts
 import { defineConfig } from 'vitepress'
 import { generateBlogSidebarFromFiles } from 'vitepress-plugin-blog/sidebar'
+import { blogPlugin } from 'vitepress-plugin-blog/plugin'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const docsDir = resolve(__dirname, '..')
 
+// Share options between static generation and HMR
+const sidebarOptions = {
+  recentPostsCount: 5,
+  allPostsLabel: 'All posts',
+  recentPostsLabel: 'Recent posts',
+  recentPostsCollapsed: false,
+}
+
 export default defineConfig({
+  vite: {
+    plugins: [
+      blogPlugin({
+        sidebar: sidebarOptions, // Enable sidebar HMR
+      })
+    ]
+  },
   themeConfig: {
     sidebar: {
-      '/blog/': generateBlogSidebarFromFiles(docsDir, {
-        recentPostsCount: 5,      // Number of recent posts to show
-        allPostsLabel: 'All posts',
-        recentPostsLabel: 'Recent posts',
-        recentPostsCollapsed: false,
-      }),
+      '/blog/': generateBlogSidebarFromFiles(docsDir, sidebarOptions),
     },
   },
 })
@@ -213,6 +251,18 @@ const { currentPost, prevPost, nextPost } = useBlogNavigation()
 - `nextPost` - Next (older) post
 - `currentIndex` - Index in posts array
 
+### useBlogSidebar
+
+Access sidebar data (used internally for HMR):
+
+```vue
+<script setup>
+import { useBlogSidebar } from 'vitepress-plugin-blog'
+
+const { sidebar, initialized } = useBlogSidebar()
+</script>
+```
+
 ## 🛠️ Utilities
 
 ```typescript
@@ -236,16 +286,16 @@ vitepress-plugin-blog/
 │   │   └── BlogPagination.vue # Pagination controls
 │   ├── composables/
 │   │   ├── useBlogPosts.ts    # Posts data composable
-│   │   └── useBlogNavigation.ts # Navigation composable
+│   │   ├── useBlogNavigation.ts # Navigation composable
+│   │   └── useBlogSidebar.ts  # Sidebar HMR composable
 │   ├── layouts/
 │   │   └── BlogPostLayout.vue # Single post layout
 │   ├── utils/
 │   │   ├── date.ts            # Date utilities
 │   │   └── author.ts          # Author utilities
-│   ├── data/
-│   │   └── blogPosts.data.ts  # VitePress data loader
 │   ├── styles/
 │   │   └── blog.css           # Plugin styles
+│   ├── plugin.ts              # Vite plugin (blogPlugin)
 │   ├── sidebar.ts             # Sidebar generation
 │   ├── types.ts               # TypeScript types
 │   └── index.ts               # Main entry point

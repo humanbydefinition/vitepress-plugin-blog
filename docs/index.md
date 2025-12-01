@@ -19,10 +19,10 @@ features:
     details: Works out of the box with sensible defaults. Just install, set up your theme, and start writing.
   - icon: 📝
     title: Automatic Post Discovery
-    details: Automatically finds and loads blog posts from your markdown files using VitePress data loaders.
+    details: Automatically finds and loads blog posts from your markdown files with a simple Vite plugin.
   - icon: 🔥
-    title: HMR Support
-    details: Full hot module replacement - posts update instantly as you edit them during development.
+    title: Full HMR Support
+    details: Posts, blog listing, and sidebar update instantly as you edit during development. No page reload needed.
   - icon: 🔍
     title: Search & Filtering
     details: Built-in search by title/description and tag filtering. Find posts quickly.
@@ -48,7 +48,21 @@ features:
 npm install vitepress-plugin-blog
 ```
 
-### 2. Set up your theme
+### 2. Add the Vite plugin
+
+```typescript
+// .vitepress/config.mts
+import { defineConfig } from 'vitepress'
+import { blogPlugin } from 'vitepress-plugin-blog/plugin'
+
+export default defineConfig({
+  vite: {
+    plugins: [blogPlugin()]
+  }
+})
+```
+
+### 3. Set up your theme
 
 ```typescript
 // .vitepress/theme/index.ts
@@ -60,7 +74,7 @@ import 'vitepress-plugin-blog/style.css'
 export default withBlogTheme(DefaultTheme) satisfies Theme
 ```
 
-### 3. Create a blog listing page
+### 4. Create a blog listing page
 
 ```markdown
 <!-- blog/index.md -->
@@ -74,7 +88,7 @@ aside: false
 <BlogIndex />
 ```
 
-### 4. Write your first post
+### 5. Write your first post
 
 ```markdown
 <!-- blog/posts/my-first-post.md -->
