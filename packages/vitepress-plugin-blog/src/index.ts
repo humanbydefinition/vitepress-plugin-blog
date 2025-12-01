@@ -23,14 +23,30 @@ import type { BlogPostEntry } from './types'
 import type { SidebarItem } from './sidebar'
 
 // ============================================================================
+// Virtual Module Import
+// ============================================================================
+
+/**
+ * Import blog posts from virtual module provided by blogPlugin().
+ * This is the primary data source that works in both dev server and production build.
+ * 
+ * The virtual module is resolved at build time by Vite/Rollup, ensuring
+ * the data is available during SSR/SSG rendering.
+ */
+import { blogPosts as virtualBlogPosts } from 'virtual:blog-posts'
+
+// ============================================================================
 // Shared State for HMR
 // ============================================================================
 
 /**
  * Shared reactive state for blog posts that persists across component instances.
  * This ensures HMR updates are reflected globally, not just in a single component instance.
+ * 
+ * Initialized with posts from the virtual module, which is populated at build time
+ * by the blogPlugin() Vite plugin.
  */
-const globalPostsRef = ref<BlogPostEntry[]>([])
+const globalPostsRef = ref<BlogPostEntry[]>(virtualBlogPosts || [])
 
 /**
  * Shared reactive state for blog sidebar.
@@ -206,46 +222,6 @@ export { generateBlogSidebar, generateBlogSidebarFromFiles } from './sidebar'
 export type { SidebarItem, BlogSidebarOptions } from './sidebar'
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Loads blog posts from the injected script tag in the HTML.
- * This is populated by blogPlugin() at build time.
- */
-function loadPostsFromDOM(): BlogPostEntry[] {
-  if (typeof document === 'undefined') return []
-  
-  const scriptEl = document.getElementById('vitepress-blog-posts')
-  if (!scriptEl?.textContent) return []
-  
-  try {
-    const posts = JSON.parse(scriptEl.textContent)
-    return Array.isArray(posts) ? posts : []
-  } catch {
-    return []
-  }
-}
-
-/**
- * Loads sidebar data from the injected script tag in the HTML.
- * This is populated by blogPlugin() at build time.
- */
-function loadSidebarFromDOM(): SidebarItem[] {
-  if (typeof document === 'undefined') return []
-  
-  const scriptEl = document.getElementById('vitepress-blog-sidebar')
-  if (!scriptEl?.textContent) return []
-  
-  try {
-    const sidebar = JSON.parse(scriptEl.textContent)
-    return Array.isArray(sidebar) ? sidebar : []
-  } catch {
-    return []
-  }
-}
-
-// ============================================================================
 // Main Plugin Function
 // ============================================================================
 
@@ -299,6 +275,7 @@ export function withBlogTheme(
   const BaseLayout = baseTheme.Layout ?? DefaultTheme.Layout
 
   // Initialize global posts with options.posts if provided (legacy support)
+  // Note: Virtual module import is the primary source, this is only for backward compatibility
   if (options.posts && options.posts.length > 0 && globalPostsRef.value.length === 0) {
     globalPostsRef.value = options.posts
   }
@@ -312,25 +289,10 @@ export function withBlogTheme(
     setup(_, { slots }) {
       const { frontmatter } = useData()
 
-      // Register HMR listeners once (globally)
-      // This ensures updates are reflected in the shared state
-      setupHmrListener()
-
-      // Load posts and sidebar from DOM on mount (client-side only)
+      // Register HMR listeners on mount (client-side only)
+      // This ensures updates are reflected in the shared state during development
       onMounted(() => {
-        if (globalPostsRef.value.length === 0) {
-          const loadedPosts = loadPostsFromDOM()
-          if (loadedPosts.length > 0) {
-            globalPostsRef.value = loadedPosts
-          }
-        }
-        
-        if (globalSidebarRef.value.length === 0) {
-          const loadedSidebar = loadSidebarFromDOM()
-          if (loadedSidebar.length > 0) {
-            globalSidebarRef.value = loadedSidebar
-          }
-        }
+        setupHmrListener()
       })
 
       // Provide the global posts ref to all child components
