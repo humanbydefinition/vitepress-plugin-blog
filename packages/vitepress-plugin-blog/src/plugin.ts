@@ -10,7 +10,7 @@
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
-import type { Plugin, ViteDevServer, ModuleNode } from 'vite'
+import type { Plugin } from 'vite'
 import type { BlogPostEntry } from './types'
 
 /**
@@ -200,7 +200,7 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
     },
 
     // Handle HMR for blog posts
-    handleHotUpdate({ file, server, modules }) {
+    handleHotUpdate({ file, server }) {
       // Normalize paths for cross-platform comparison
       const normalizedFile = file.replace(/\\/g, '/')
       const normalizedPostsDir = postsDir.replace(/\\/g, '/')
@@ -227,9 +227,8 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
           server.moduleGraph.invalidateModule(virtualModule)
         }
         
-        // Return the modules so VitePress can handle .md file HMR for the actual page
-        // But also trigger our custom update for the blog index
-        return modules
+        // Don't return modules - let VitePress handle .md file HMR normally
+        // Our custom event handles the blog posts list update
       }
     },
   }
