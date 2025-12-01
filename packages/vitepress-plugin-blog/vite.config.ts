@@ -16,6 +16,7 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
         sidebar: resolve(__dirname, 'src/sidebar.ts'),
+        plugin: resolve(__dirname, 'src/plugin.ts'),
       },
       name: 'VitepressPluginBlog',
       formats: ['es', 'cjs'],
@@ -30,6 +31,7 @@ export default defineConfig({
         'fs',
         'path',
         /\.data\.ts$/,  // Externalize data loaders
+        /^virtual:/,    // Externalize virtual modules
       ],
       output: {
         globals: {

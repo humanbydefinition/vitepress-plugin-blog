@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import { generateBlogSidebarFromFiles } from 'vitepress-plugin-blog/sidebar'
+import { blogPlugin } from 'vitepress-plugin-blog/plugin'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pluginPath = resolve(__dirname, '../../packages/vitepress-plugin-blog/dist')
@@ -25,6 +26,9 @@ export default defineConfig({
   ],
 
   vite: {
+    plugins: [
+      blogPlugin(),
+    ],
     resolve: {
       alias: [
         {
@@ -34,6 +38,10 @@ export default defineConfig({
         {
           find: /^vitepress-plugin-blog\/sidebar$/,
           replacement: resolve(pluginPath, 'sidebar.js'),
+        },
+        {
+          find: /^vitepress-plugin-blog\/plugin$/,
+          replacement: resolve(pluginPath, 'plugin.js'),
         },
         {
           find: /^vitepress-plugin-blog$/,
