@@ -12,6 +12,7 @@ import path from 'path'
 import matter from 'gray-matter'
 import type { Plugin } from 'vite'
 import type { BlogPostEntry } from './types'
+import type { SidebarItem, BlogSidebarOptions } from './sidebar'
 
 /**
  * Configuration options for the blog Vite plugin.
@@ -28,6 +29,53 @@ export interface BlogPluginOptions {
    * @default 220
    */
   wordsPerMinute?: number
+
+  /**
+   * Sidebar options for HMR support.
+   * When provided, enables dynamic sidebar updates during development.
+   */
+  sidebar?: BlogSidebarOptions
+}
+
+/**
+ * Generates sidebar items from blog posts.
+ * Internal helper for HMR sidebar updates.
+ */
+function generateSidebarFromPosts(
+  posts: BlogPostEntry[],
+  options: BlogSidebarOptions = {}
+): SidebarItem[] {
+  const {
+    basePath = '/blog/',
+    recentPostsCount = 5,
+    allPostsLabel = 'All posts',
+    recentPostsLabel = 'Recent posts',
+    recentPostsCollapsed = false,
+  } = options
+
+  const recentPosts = posts.slice(0, recentPostsCount)
+
+  const sidebar: SidebarItem[] = [
+    {
+      text: 'Blog',
+      items: [
+        { text: allPostsLabel, link: basePath },
+      ],
+    },
+  ]
+
+  if (recentPosts.length > 0) {
+    sidebar.push({
+      text: recentPostsLabel,
+      collapsed: recentPostsCollapsed,
+      items: recentPosts.map((post) => ({
+        text: post.title,
+        link: post.url,
+      })),
+    })
+  }
+
+  return sidebar
 }
 
 /**
@@ -148,14 +196,17 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
   const {
     postsDir = 'blog/posts',
     wordsPerMinute = 220,
+    sidebar: sidebarOptions,
   } = options
 
   let docsDir: string
   let posts: BlogPostEntry[] = []
 
-  // Virtual module ID for blog posts data
+  // Virtual module IDs
   const VIRTUAL_MODULE_ID = 'virtual:blog-posts'
   const RESOLVED_VIRTUAL_MODULE_ID = '\0' + VIRTUAL_MODULE_ID
+  const VIRTUAL_SIDEBAR_ID = 'virtual:blog-sidebar'
+  const RESOLVED_VIRTUAL_SIDEBAR_ID = '\0' + VIRTUAL_SIDEBAR_ID
 
   return {
     name: 'vitepress-plugin-blog',
@@ -168,19 +219,28 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
       posts = scanBlogPosts(docsDir, postsDir, wordsPerMinute)
     },
 
-    // Resolve virtual module for blog posts
+    // Resolve virtual modules
     resolveId(id) {
       if (id === VIRTUAL_MODULE_ID) {
         return RESOLVED_VIRTUAL_MODULE_ID
       }
+      if (id === VIRTUAL_SIDEBAR_ID) {
+        return RESOLVED_VIRTUAL_SIDEBAR_ID
+      }
     },
 
-    // Load virtual module with current posts data
+    // Load virtual modules with current data
     load(id) {
       if (id === RESOLVED_VIRTUAL_MODULE_ID) {
         // Re-scan to get latest posts
         posts = scanBlogPosts(docsDir, postsDir, wordsPerMinute)
         return `export const blogPosts = ${JSON.stringify(posts)};`
+      }
+      if (id === RESOLVED_VIRTUAL_SIDEBAR_ID) {
+        // Re-scan to get latest posts
+        posts = scanBlogPosts(docsDir, postsDir, wordsPerMinute)
+        const sidebar = generateSidebarFromPosts(posts, sidebarOptions)
+        return `export const blogSidebar = ${JSON.stringify(sidebar)};`
       }
     },
 
@@ -188,12 +248,19 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
     transformIndexHtml() {
       // Re-scan to get latest posts
       posts = scanBlogPosts(docsDir, postsDir, wordsPerMinute)
+      const sidebar = generateSidebarFromPosts(posts, sidebarOptions)
       
       return [
         {
           tag: 'script',
           attrs: { type: 'application/json', id: 'vitepress-blog-posts' },
           children: JSON.stringify(posts),
+          injectTo: 'head',
+        },
+        {
+          tag: 'script',
+          attrs: { type: 'application/json', id: 'vitepress-blog-sidebar' },
+          children: JSON.stringify(sidebar),
           injectTo: 'head',
         },
       ]
@@ -212,6 +279,9 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
         posts = scanBlogPosts(docsDir, postsDir, wordsPerMinute)
         console.log('[vitepress-plugin-blog] Scanned', posts.length, 'posts')
         
+        // Generate updated sidebar
+        const sidebar = generateSidebarFromPosts(posts, sidebarOptions)
+        
         // Send custom event with updated posts data
         server.ws.send({
           type: 'custom',
@@ -219,16 +289,28 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
           data: posts,
         })
         
-        console.log('[vitepress-plugin-blog] Sent HMR update event')
+        // Send custom event with updated sidebar data
+        server.ws.send({
+          type: 'custom',
+          event: 'blog-sidebar-update',
+          data: sidebar,
+        })
         
-        // Invalidate the virtual module so it reloads with new data
+        console.log('[vitepress-plugin-blog] Sent HMR update events (posts + sidebar)')
+        
+        // Invalidate the virtual modules so they reload with new data
         const virtualModule = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_MODULE_ID)
         if (virtualModule) {
           server.moduleGraph.invalidateModule(virtualModule)
         }
         
+        const sidebarModule = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_SIDEBAR_ID)
+        if (sidebarModule) {
+          server.moduleGraph.invalidateModule(sidebarModule)
+        }
+        
         // Don't return modules - let VitePress handle .md file HMR normally
-        // Our custom event handles the blog posts list update
+        // Our custom events handle the blog posts list and sidebar updates
       }
     },
   }

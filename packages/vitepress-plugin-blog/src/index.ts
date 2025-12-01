@@ -9,7 +9,7 @@
 
 import DefaultTheme from 'vitepress/theme'
 import type { Theme, EnhanceAppContext } from 'vitepress'
-import { defineComponent, h, provide, ref, onMounted } from 'vue'
+import { defineComponent, h, provide, ref, onMounted, nextTick } from 'vue'
 import { useData } from 'vitepress'
 
 // Internal imports
@@ -20,6 +20,7 @@ import BlogFilters from './components/BlogFilters.vue'
 import BlogPagination from './components/BlogPagination.vue'
 import { blogPostsKey } from './injectionKeys'
 import type { BlogPostEntry } from './types'
+import type { SidebarItem } from './sidebar'
 
 // ============================================================================
 // Shared State for HMR
@@ -32,13 +33,72 @@ import type { BlogPostEntry } from './types'
 const globalPostsRef = ref<BlogPostEntry[]>([])
 
 /**
+ * Shared reactive state for blog sidebar.
+ */
+const globalSidebarRef = ref<SidebarItem[]>([])
+
+/**
  * Flag to track if HMR listener has been registered.
  * Prevents duplicate listener registrations.
  */
 let hmrListenerRegistered = false
 
 /**
- * Sets up the HMR listener for blog posts updates.
+ * Updates the VitePress sidebar DOM to reflect new sidebar data.
+ * This patches the existing sidebar without a full page reload.
+ */
+function patchVitePressSidebar(sidebar: SidebarItem[]): void {
+  if (typeof document === 'undefined') return
+  
+  // Find the "Recent posts" section in our data
+  const recentSection = sidebar.find(s => 
+    s.text.toLowerCase().includes('recent')
+  )
+  
+  if (!recentSection?.items) {
+    return
+  }
+  
+  // Find all sidebar groups in VitePress
+  const sidebarGroups = document.querySelectorAll('.VPSidebarItem.level-0')
+  
+  for (const group of sidebarGroups) {
+    // Find the title element
+    const titleEl = group.querySelector(':scope > .item .text')
+    const titleText = titleEl?.textContent?.trim().toLowerCase() || ''
+    
+    // Check if this is the "Recent posts" section
+    if (titleText.includes('recent')) {
+      // Find all the link items within this group
+      const linkItems = group.querySelectorAll(':scope > .items > .VPSidebarItem')
+      
+      recentSection.items.forEach((item, index) => {
+        const linkEl = linkItems[index]
+        if (linkEl) {
+          // Update the text
+          const textEl = linkEl.querySelector('.text')
+          if (textEl && textEl.textContent !== item.text) {
+            console.log(`[vitepress-plugin-blog] Sidebar: "${textEl.textContent}" -> "${item.text}"`)
+            textEl.textContent = item.text
+          }
+          
+          // Update the href
+          const anchorEl = linkEl.querySelector('a')
+          if (anchorEl && item.link) {
+            const currentHref = anchorEl.getAttribute('href') || ''
+            if (!currentHref.endsWith(item.link) && !currentHref.endsWith(item.link + '.html')) {
+              anchorEl.setAttribute('href', item.link)
+            }
+          }
+        }
+      })
+      break
+    }
+  }
+}
+
+/**
+ * Sets up the HMR listener for blog posts and sidebar updates.
  * Called during component mount to ensure it runs in browser context.
  */
 function setupHmrListener(): void {
@@ -46,20 +106,34 @@ function setupHmrListener(): void {
   hmrListenerRegistered = true
 
   // Access import.meta.hot dynamically to prevent tree-shaking
-  // We need to use a runtime check that the bundler can't optimize away
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metaObj = import.meta as any
     const hot = metaObj.hot
     if (hot && typeof hot.on === 'function') {
+      // Listen for blog posts updates
       hot.on('blog-posts-update', (newPosts: BlogPostEntry[]) => {
         console.log('[vitepress-plugin-blog] HMR update received:', Array.isArray(newPosts) ? newPosts.length : 0, 'posts')
         if (Array.isArray(newPosts)) {
-          // Create a new array to ensure Vue detects the change
           globalPostsRef.value = [...newPosts]
         }
       })
-      console.log('[vitepress-plugin-blog] HMR listener registered')
+      
+      // Listen for sidebar updates
+      hot.on('blog-sidebar-update', async (newSidebar: SidebarItem[]) => {
+        console.log('[vitepress-plugin-blog] Sidebar HMR update received')
+        if (Array.isArray(newSidebar)) {
+          globalSidebarRef.value = [...newSidebar]
+          
+          // Wait for Vue updates, then patch DOM
+          await nextTick()
+          setTimeout(() => {
+            patchVitePressSidebar(newSidebar)
+          }, 50)
+        }
+      })
+      
+      console.log('[vitepress-plugin-blog] HMR listeners registered (posts + sidebar)')
     }
   } catch {
     // HMR not available (production build or SSR)
@@ -117,8 +191,8 @@ export { BlogIndex as BlogPostList }
 export { BlogIndex as BlogHome }
 
 // Composables
-export { useBlogPosts, useBlogNavigation } from './composables'
-export type { UseBlogPostsReturn, UseBlogNavigationReturn } from './composables'
+export { useBlogPosts, useBlogNavigation, useBlogSidebar } from './composables'
+export type { UseBlogPostsReturn, UseBlogNavigationReturn, UseBlogSidebarReturn } from './composables'
 
 // Utilities
 export { formatDate, parseDate } from './utils/date'
@@ -148,6 +222,24 @@ function loadPostsFromDOM(): BlogPostEntry[] {
   try {
     const posts = JSON.parse(scriptEl.textContent)
     return Array.isArray(posts) ? posts : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Loads sidebar data from the injected script tag in the HTML.
+ * This is populated by blogPlugin() at build time.
+ */
+function loadSidebarFromDOM(): SidebarItem[] {
+  if (typeof document === 'undefined') return []
+  
+  const scriptEl = document.getElementById('vitepress-blog-sidebar')
+  if (!scriptEl?.textContent) return []
+  
+  try {
+    const sidebar = JSON.parse(scriptEl.textContent)
+    return Array.isArray(sidebar) ? sidebar : []
   } catch {
     return []
   }
@@ -220,16 +312,23 @@ export function withBlogTheme(
     setup(_, { slots }) {
       const { frontmatter } = useData()
 
-      // Register HMR listener once (globally)
+      // Register HMR listeners once (globally)
       // This ensures updates are reflected in the shared state
       setupHmrListener()
 
-      // Load posts from DOM on mount (client-side only)
+      // Load posts and sidebar from DOM on mount (client-side only)
       onMounted(() => {
         if (globalPostsRef.value.length === 0) {
           const loadedPosts = loadPostsFromDOM()
           if (loadedPosts.length > 0) {
             globalPostsRef.value = loadedPosts
+          }
+        }
+        
+        if (globalSidebarRef.value.length === 0) {
+          const loadedSidebar = loadSidebarFromDOM()
+          if (loadedSidebar.length > 0) {
+            globalSidebarRef.value = loadedSidebar
           }
         }
       })

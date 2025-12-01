@@ -8,6 +8,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const pluginPath = resolve(__dirname, '../../packages/vitepress-plugin-blog/dist')
 const docsDir = resolve(__dirname, '..')
 
+// Sidebar options - shared between static generation and HMR
+const sidebarOptions = {
+  recentPostsCount: 5,
+}
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   base: '/vitepress-plugin-blog/',
@@ -27,7 +32,9 @@ export default defineConfig({
 
   vite: {
     plugins: [
-      blogPlugin(),
+      blogPlugin({
+        sidebar: sidebarOptions,
+      }),
     ],
     resolve: {
       alias: [
@@ -70,9 +77,7 @@ export default defineConfig({
           ]
         }
       ],
-      '/blog/': generateBlogSidebarFromFiles(docsDir, {
-        recentPostsCount: 5,
-      }),
+      '/blog/': generateBlogSidebarFromFiles(docsDir, sidebarOptions),
     },
 
     socialLinks: [
