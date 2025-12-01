@@ -244,28 +244,6 @@ export function blogPlugin(options: BlogPluginOptions = {}): Plugin {
       }
     },
 
-    // Inject posts data into the HTML
-    transformIndexHtml() {
-      // Re-scan to get latest posts
-      posts = scanBlogPosts(docsDir, postsDir, wordsPerMinute)
-      const sidebar = generateSidebarFromPosts(posts, sidebarOptions)
-      
-      return [
-        {
-          tag: 'script',
-          attrs: { type: 'application/json', id: 'vitepress-blog-posts' },
-          children: JSON.stringify(posts),
-          injectTo: 'head',
-        },
-        {
-          tag: 'script',
-          attrs: { type: 'application/json', id: 'vitepress-blog-sidebar' },
-          children: JSON.stringify(sidebar),
-          injectTo: 'head',
-        },
-      ]
-    },
-
     // Handle HMR for blog posts
     handleHotUpdate({ file, server }) {
       // Normalize paths for cross-platform comparison
