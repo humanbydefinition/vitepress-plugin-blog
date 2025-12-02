@@ -7,7 +7,6 @@
  * @packageDocumentation
  */
 
-import DefaultTheme from 'vitepress/theme'
 import type { Theme, EnhanceAppContext } from 'vitepress'
 import { defineComponent, h, provide, ref, onMounted, nextTick } from 'vue'
 import { useData } from 'vitepress'
@@ -234,7 +233,7 @@ export type { SidebarItem, BlogSidebarOptions } from './sidebar'
  * - Provides blog posts data to all components via Vue's provide/inject
  * - Automatically loads posts from the injected script (when using blogPlugin())
  *
- * @param baseTheme - The base VitePress theme to extend (defaults to DefaultTheme)
+ * @param baseTheme - The base VitePress theme to extend (required)
  * @param options - Configuration options for the blog plugin
  * @returns A new VitePress theme with blog functionality
  *
@@ -268,11 +267,19 @@ export type { SidebarItem, BlogSidebarOptions } from './sidebar'
  * ```
  */
 export function withBlogTheme(
-  baseTheme: Theme = DefaultTheme,
+  baseTheme: Theme,
   options: BlogOptions = {}
 ): Theme {
+  if (!baseTheme) {
+    throw new Error('[vitepress-plugin-blog] baseTheme is required. Pass your VitePress theme (e.g., DefaultTheme) as the first argument.')
+  }
+
   const blogFlagKey = options.blogFrontmatterKey ?? 'blogPost'
-  const BaseLayout = baseTheme.Layout ?? DefaultTheme.Layout
+  const BaseLayout = baseTheme.Layout
+
+  if (!BaseLayout) {
+    throw new Error('[vitepress-plugin-blog] baseTheme.Layout is required. Make sure you pass a valid VitePress theme.')
+  }
 
   // Initialize global posts with options.posts if provided (legacy support)
   // Note: Virtual module import is the primary source, this is only for backward compatibility
