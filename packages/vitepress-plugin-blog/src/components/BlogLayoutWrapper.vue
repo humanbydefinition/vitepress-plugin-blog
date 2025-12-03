@@ -1,9 +1,8 @@
 <template>
   <BlogPostLayout v-if="isBlogPost" :posts="posts" />
-  <component :is="baseLayout" v-else>
-    <slot />
-    <template v-for="(_, slotName) in ($slots as Record<string, unknown>)" :key="slotName" #[slotName]>
-      <slot :name="slotName" />
+  <component :is="baseLayout" v-else v-bind="$attrs">
+    <template v-for="(slot, name) in typedSlots" :key="name" v-slot:[name]="slotProps">
+      <component :is="slot" v-bind="slotProps || {}" />
     </template>
   </component>
 </template>
@@ -20,7 +19,7 @@
  * 
  * @internal
  */
-import { computed, inject, type Component } from 'vue'
+import { computed, inject, useSlots, type Component, type Slot } from 'vue'
 import BlogPostLayout from '../layouts/BlogPostLayout.vue'
 import { blogPostsKey, baseLayoutKey, vitePressDataKey } from '../injectionKeys'
 import type { BlogPostEntry } from '../types'
@@ -33,6 +32,14 @@ const props = defineProps<{
   /** Frontmatter key that marks a page as a blog post */
   blogFlagKey: string
 }>()
+
+// ============================================================================
+// Setup
+// ============================================================================
+
+// Get slots with proper typing
+const slots = useSlots()
+const typedSlots = computed<Record<string, Slot>>(() => slots as Record<string, Slot>)
 
 // ============================================================================
 // Setup

@@ -33,7 +33,6 @@
 
 import fs from 'fs'
 import path from 'path'
-import type { Plugin } from 'vite'
 import { blogPlugin, type BlogPluginOptions } from './plugin'
 import { generateBlogSidebarFromFiles, type SidebarItem, type BlogSidebarOptions } from './sidebar'
 
@@ -69,8 +68,14 @@ export interface BlogConfig extends BlogPluginOptions {
  * Result of defineBlogConfig with pre-configured plugin and sidebar.
  */
 export interface BlogConfigResult {
-  /** The Vite plugin for blog functionality */
-  plugin: Plugin
+  /** 
+   * The Vite plugin for blog functionality.
+   * 
+   * Uses a structural type compatible with Vite's PluginOption to avoid 
+   * version conflicts between different Vite installations (e.g., when 
+   * VitePress bundles its own Vite version).
+   */
+  plugin: { name: string; [key: string]: unknown }
   /** The sidebar configuration for the blog section */
   sidebar: SidebarItem[]
   /** The resolved docs directory path */
@@ -205,11 +210,13 @@ export function defineBlogConfig(options: BlogConfig = {}): BlogConfigResult {
   }
   
   // Create the plugin with sidebar options for HMR
+  // Cast to a structural type compatible with Vite's PluginOption to avoid 
+  // version conflicts between the plugin's Vite types and VitePress's bundled Vite types
   const plugin = blogPlugin({
     postsDir,
     wordsPerMinute: options.wordsPerMinute ?? 220,
     sidebar: sidebarOptions,
-  })
+  }) as { name: string; [key: string]: unknown }
   
   // Generate the sidebar synchronously
   const sidebar = generateBlogSidebarFromFiles(docsDir, {
@@ -246,7 +253,7 @@ export function defineBlogConfig(options: BlogConfig = {}): BlogConfigResult {
  * })
  * ```
  */
-export function createBlogPlugin(options: BlogPluginOptions = {}): Plugin {
+export function createBlogPlugin(options: BlogPluginOptions = {}): ReturnType<typeof blogPlugin> {
   return blogPlugin(options)
 }
 
