@@ -1,6 +1,6 @@
 <template>
   <article class="blog-card">
-    <a :href="withBase(post.url)" class="blog-card__link">
+    <a :href="getUrl(post.url)" class="blog-card__link">
       <div v-if="post.cover" class="blog-card__cover">
         <img :src="post.cover" :alt="post.title" loading="lazy" />
       </div>
@@ -55,9 +55,10 @@
  * <BlogCard :post="post" />
  * ```
  */
-import { withBase } from 'vitepress'
+import { inject, computed } from 'vue'
 import { formatDate } from '../utils/date'
 import { isGitHubUsername, getGitHubAvatarUrl } from '../utils/author'
+import { withBaseKey } from '../injectionKeys'
 import type { BlogPostEntry } from '../types'
 
 // ============================================================================
@@ -70,4 +71,18 @@ interface Props {
 }
 
 defineProps<Props>()
+
+// ============================================================================
+// Setup
+// ============================================================================
+
+// Get withBase from injection (provided by withBlogTheme)
+const withBaseRef = inject(withBaseKey)
+
+/**
+ * Helper to apply withBase if available, otherwise return path as-is
+ */
+function getUrl(path: string): string {
+  return withBaseRef?.value?.(path) ?? path
+}
 </script>

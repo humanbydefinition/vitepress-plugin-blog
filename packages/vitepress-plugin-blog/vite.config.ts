@@ -15,12 +15,13 @@ export default defineConfig({
     lib: {
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
+        config: resolve(__dirname, 'src/config.ts'),
         sidebar: resolve(__dirname, 'src/sidebar.ts'),
         plugin: resolve(__dirname, 'src/plugin.ts'),
       },
       name: 'VitepressPluginBlog',
-      formats: ['es', 'cjs'],
-      fileName: (format, entryName) => `${entryName}.${format === 'es' ? 'js' : 'cjs'}`,
+      formats: ['es'],
+      fileName: (format, entryName) => `${entryName}.js`,
     },
     rollupOptions: {
       external: [
@@ -30,6 +31,7 @@ export default defineConfig({
         'gray-matter',
         'fs',
         'path',
+        'url',
         /\.data\.ts$/,  // Externalize data loaders
         /^virtual:/,    // Externalize virtual modules
       ],
@@ -39,6 +41,11 @@ export default defineConfig({
           vitepress: 'VitePress',
           'vitepress/theme': 'VitePressTheme',
         },
+        // Preserve module structure - this keeps Vue components as separate chunks
+        // that are only loaded when needed (in browser context)
+        preserveModules: true,
+        preserveModulesRoot: 'src',
+        entryFileNames: '[name].js',
       },
     },
     sourcemap: true,

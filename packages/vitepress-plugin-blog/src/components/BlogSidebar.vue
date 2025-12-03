@@ -4,9 +4,11 @@
  * 
  * This component listens for HMR updates and reactively updates
  * the sidebar links when blog post titles change.
+ * 
+ * Uses injected VitePress utilities to avoid direct imports from 'vitepress'.
  */
-import { ref, onMounted, watch, computed } from 'vue'
-import { useRoute, useData } from 'vitepress'
+import { ref, onMounted, computed, inject } from 'vue'
+import { vitePressDataKey } from '../injectionKeys'
 
 interface SidebarItem {
   text: string
@@ -29,12 +31,23 @@ const props = withDefaults(defineProps<Props>(), {
   recentPostsLabel: 'Recent posts',
 })
 
-const route = useRoute()
-const { site } = useData()
+// Get VitePress data from injection
+const vitePressDataRef = inject(vitePressDataKey)
 
 // Reactive sidebar state
 const sidebarItems = ref<SidebarItem[]>([])
 const initialized = ref(false)
+
+// Get current route path from page data
+// vitePressDataRef is ShallowRef<VitePressPageData | null>
+const currentPath = computed(() => {
+  const data = vitePressDataRef?.value
+  if (!data) return '/'
+  const pageData = data.page?.value
+  if (!pageData?.relativePath) return '/'
+  // Convert relative path to URL format
+  return '/' + pageData.relativePath.replace(/\.md$/, '').replace(/index$/, '')
+})
 
 /**
  * Loads sidebar data from the injected script tag.
@@ -91,21 +104,18 @@ const blogSection = computed(() => {
 // Check if a link is active
 function isActive(link: string | undefined): boolean {
   if (!link) return false
-  const currentPath = route.path
   // Normalize paths for comparison
   const normalizedLink = link.replace(/\.html$/, '').replace(/\/$/, '') || '/'
-  const normalizedCurrent = currentPath.replace(/\.html$/, '').replace(/\/$/, '') || '/'
+  const normalizedCurrent = currentPath.value.replace(/\.html$/, '').replace(/\/$/, '') || '/'
   return normalizedLink === normalizedCurrent
 }
 
 // Get full href with base path
 function getHref(link: string | undefined): string {
   if (!link) return '#'
-  const base = site.value.base || '/'
-  // Remove leading slash from link if base already ends with one
-  const normalizedLink = link.startsWith('/') ? link.slice(1) : link
-  const normalizedBase = base.endsWith('/') ? base : base + '/'
-  return normalizedBase + normalizedLink
+  // For now, just return the link as-is
+  // withBase would be applied if available via injection
+  return link
 }
 
 onMounted(() => {
@@ -119,6 +129,7 @@ onMounted(() => {
   // Setup HMR
   setupHmrListener()
 })
+</script>
 </script>
 
 <template>

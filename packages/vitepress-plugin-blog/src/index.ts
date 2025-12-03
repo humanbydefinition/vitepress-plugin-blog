@@ -8,31 +8,69 @@
  */
 
 import type { Theme, EnhanceAppContext } from 'vitepress'
-import { defineComponent, h, provide, ref, onMounted, nextTick } from 'vue'
-import { useData } from 'vitepress'
+import { defineComponent, h, provide, ref, onMounted, nextTick, shallowRef, type Component } from 'vue'
 
-// Internal imports
-import BlogPostLayout from './layouts/BlogPostLayout.vue'
-import BlogIndex from './components/BlogIndex.vue'
-import BlogCard from './components/BlogCard.vue'
-import BlogFilters from './components/BlogFilters.vue'
-import BlogPagination from './components/BlogPagination.vue'
-import { blogPostsKey } from './injectionKeys'
+// Only import types and SSR-safe modules at top level
+import { blogPostsKey, baseLayoutKey, vitePressDataKey, withBaseKey } from './injectionKeys'
 import type { BlogPostEntry } from './types'
 import type { SidebarItem } from './sidebar'
 
-// ============================================================================
-// Virtual Module Import
-// ============================================================================
+// Lazy-loaded component references
+// These are populated during enhanceApp, which runs after Vite's module loading
+let BlogPostLayoutComponent: Component | null = null
+let BlogLayoutWrapperComponent: Component | null = null
+let BlogIndexComponent: Component | null = null
+let BlogCardComponent: Component | null = null
+let BlogFiltersComponent: Component | null = null
+let BlogPaginationComponent: Component | null = null
 
 /**
- * Import blog posts from virtual module provided by blogPlugin().
- * This is the primary data source that works in both dev server and production build.
- * 
- * The virtual module is resolved at build time by Vite/Rollup, ensuring
- * the data is available during SSR/SSG rendering.
+ * Dynamically imports all Vue components.
+ * This defers the loading of components that import from 'vitepress'
+ * until runtime, avoiding SSR import errors.
  */
-import { blogPosts as virtualBlogPosts } from 'virtual:blog-posts'
+async function loadComponents(): Promise<void> {
+  const [
+    BlogPostLayout,
+    BlogLayoutWrapper,
+    BlogIndex,
+    BlogCard,
+    BlogFilters,
+    BlogPagination,
+  ] = await Promise.all([
+    import('./layouts/BlogPostLayout.vue'),
+    import('./components/BlogLayoutWrapper.vue'),
+    import('./components/BlogIndex.vue'),
+    import('./components/BlogCard.vue'),
+    import('./components/BlogFilters.vue'),
+    import('./components/BlogPagination.vue'),
+  ])
+  
+  BlogPostLayoutComponent = BlogPostLayout.default
+  BlogLayoutWrapperComponent = BlogLayoutWrapper.default
+  BlogIndexComponent = BlogIndex.default
+  BlogCardComponent = BlogCard.default
+  BlogFiltersComponent = BlogFilters.default
+  BlogPaginationComponent = BlogPagination.default
+}
+
+// Cached VitePress module (populated lazily)
+let vitepressModule: typeof import('vitepress') | null = null
+
+/**
+ * Lazily loads VitePress client utilities.
+ * Called during enhanceApp which runs in a context where vitepress is available.
+ */
+async function loadVitePressUtils(): Promise<typeof import('vitepress') | null> {
+  if (vitepressModule) return vitepressModule
+  
+  try {
+    vitepressModule = await import('vitepress')
+    return vitepressModule
+  } catch {
+    return null
+  }
+}
 
 // ============================================================================
 // Shared State for HMR
@@ -42,15 +80,40 @@ import { blogPosts as virtualBlogPosts } from 'virtual:blog-posts'
  * Shared reactive state for blog posts that persists across component instances.
  * This ensures HMR updates are reflected globally, not just in a single component instance.
  * 
- * Initialized with posts from the virtual module, which is populated at build time
- * by the blogPlugin() Vite plugin.
+ * Initialized empty and populated dynamically when the theme is set up.
+ * The virtual module import happens lazily to avoid SSR issues.
  */
-const globalPostsRef = ref<BlogPostEntry[]>(virtualBlogPosts || [])
+const globalPostsRef = ref<BlogPostEntry[]>([])
 
 /**
  * Shared reactive state for blog sidebar.
  */
 const globalSidebarRef = ref<SidebarItem[]>([])
+
+/**
+ * Flag to track if posts have been loaded from the virtual module.
+ */
+let postsLoaded = false
+
+/**
+ * Loads blog posts from the virtual module.
+ * This is called lazily during enhanceApp to avoid SSR issues with the virtual: protocol.
+ */
+async function loadBlogPosts(): Promise<void> {
+  if (postsLoaded) return
+  postsLoaded = true
+  
+  try {
+    // Dynamic import to avoid top-level virtual module resolution during SSR
+    const { blogPosts } = await import('virtual:blog-posts')
+    if (Array.isArray(blogPosts)) {
+      globalPostsRef.value = blogPosts
+    }
+  } catch (e) {
+    // Virtual module not available (blogPlugin not configured or SSR edge case)
+    console.warn('[vitepress-plugin-blog] Could not load blog posts from virtual module. Make sure blogPlugin() is configured in your Vite config.')
+  }
+}
 
 /**
  * Flag to track if HMR listener has been registered.
@@ -196,25 +259,27 @@ export interface BlogOptions {
 // Types
 export type { BlogPostEntry, PaginationVisibility } from './types'
 
-// Components (BlogIndex is the main component, others available for customization)
-export { BlogIndex, BlogCard, BlogFilters, BlogPagination, BlogPostLayout }
-
-// Legacy aliases for backward compatibility
-/** @deprecated Use BlogIndex instead */
-export { BlogIndex as BlogPostList }
-/** @deprecated Use BlogIndex instead */
-export { BlogIndex as BlogHome }
-
-// Composables
-export { useBlogPosts, useBlogNavigation, useBlogSidebar } from './composables'
+// Composable types (can be exported statically as they're just types)
 export type { UseBlogPostsReturn, UseBlogNavigationReturn, UseBlogSidebarReturn } from './composables'
 
-// Utilities
+// SSR-safe composables (don't import from vitepress)
+export { useBlogPosts } from './composables/useBlogPosts'
+export { useBlogSidebar } from './composables/useBlogSidebar'
+
+// useBlogNavigation imports from vitepress, so we provide a lazy getter
+// Users can also import it directly: import { useBlogNavigation } from 'vitepress-plugin-blog/composables'
+export const useBlogNavigation = async () => {
+  const mod = await import('./composables/useBlogNavigation')
+  return mod.useBlogNavigation
+}
+
+// Utilities (SSR-safe)
 export { formatDate, parseDate } from './utils/date'
 export { isGitHubUsername, getGitHubAvatarUrl } from './utils/author'
 
 // Injection Keys (for advanced usage)
-export { blogPostsKey } from './injectionKeys'
+export { blogPostsKey, baseLayoutKey, vitePressDataKey, withBaseKey } from './injectionKeys'
+export type { VitePressPageData, WithBaseFunction } from './injectionKeys'
 
 // Sidebar utilities (prefer importing from 'vitepress-plugin-blog/sidebar')
 export { generateBlogSidebar, generateBlogSidebarFromFiles } from './sidebar'
@@ -286,6 +351,16 @@ export function withBlogTheme(
   if (options.posts && options.posts.length > 0 && globalPostsRef.value.length === 0) {
     globalPostsRef.value = options.posts
   }
+  
+  // Reactive ref for withBase function (populated in enhanceApp)
+  const withBaseFnRef = shallowRef<typeof import('vitepress')['withBase'] | null>(null)
+  
+  // Reactive ref for useData function (populated in enhanceApp)
+  // We store the function itself, not the result, since useData must be called in component setup
+  const useDataFnRef = shallowRef<typeof import('vitepress')['useData'] | null>(null)
+  
+  // Reactive ref for the layout wrapper component (loaded lazily)
+  const layoutWrapperRef = shallowRef<Component | null>(null)
 
   /**
    * Layout component that switches between blog and default layouts
@@ -294,8 +369,10 @@ export function withBlogTheme(
   const BlogAwareLayout = defineComponent({
     name: 'BlogAwareLayout',
     setup(_, { slots }) {
-      const { frontmatter } = useData()
-
+      // Call useData here in component setup context (where it's valid)
+      // This creates the reactive VitePress page data
+      const vitePressData = useDataFnRef.value?.() ?? null
+      
       // Register HMR listeners on mount (client-side only)
       // This ensures updates are reflected in the shared state during development
       onMounted(() => {
@@ -306,13 +383,21 @@ export function withBlogTheme(
       // Using the shared ref ensures HMR updates propagate correctly
       provide(blogPostsKey, globalPostsRef)
 
+      // Provide the base layout to child components (e.g., BlogPostLayout)
+      // This avoids the need to import DefaultTheme directly in components
+      provide(baseLayoutKey, BaseLayout)
+      
+      // Provide VitePress utilities to child components
+      // vitePressData is the result of calling useData() in this setup context
+      provide(vitePressDataKey, shallowRef(vitePressData))
+      provide(withBaseKey, withBaseFnRef)
+      
       return () => {
-        // Use BlogPostLayout for pages marked as blog posts
-        if (frontmatter.value?.[blogFlagKey] === true) {
-          return h(BlogPostLayout, { posts: globalPostsRef.value })
+        // Use the lazily loaded BlogLayoutWrapper
+        if (layoutWrapperRef.value) {
+          return h(layoutWrapperRef.value, { blogFlagKey }, slots)
         }
-
-        // Use the base layout for all other pages
+        // Fallback to base layout while component is loading
         return h(BaseLayout, null, slots)
       }
     },
@@ -321,14 +406,33 @@ export function withBlogTheme(
   return {
     extends: baseTheme,
     Layout: BlogAwareLayout,
-    enhanceApp(ctx: EnhanceAppContext) {
+    async enhanceApp(ctx: EnhanceAppContext) {
       const { app } = ctx
 
-      // Register global components
-      // BlogIndex is the main component, registered under multiple names for convenience
-      app.component('BlogIndex', BlogIndex)
-      app.component('BlogPostList', BlogIndex)  // Legacy alias
-      app.component('BlogHome', BlogIndex)      // Legacy alias
+      // Load VitePress utilities dynamically to avoid SSR import issues
+      const vp = await loadVitePressUtils()
+      if (vp) {
+        // Store the useData function (not the result!) to be called in component setup
+        useDataFnRef.value = vp.useData
+        // Store withBase function directly
+        withBaseFnRef.value = vp.withBase
+      }
+
+      // Load components dynamically to avoid SSR import issues
+      await loadComponents()
+      
+      // Set the layout wrapper ref so the layout can use it
+      layoutWrapperRef.value = BlogLayoutWrapperComponent
+
+      // Load posts from virtual module (lazy to avoid SSR issues)
+      await loadBlogPosts()
+
+      // Register global components using the dynamically loaded references
+      if (BlogIndexComponent) {
+        app.component('BlogIndex', BlogIndexComponent)
+        app.component('BlogPostList', BlogIndexComponent)  // Legacy alias
+        app.component('BlogHome', BlogIndexComponent)      // Legacy alias
+      }
     },
   }
 }

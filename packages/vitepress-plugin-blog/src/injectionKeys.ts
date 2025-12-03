@@ -7,8 +7,50 @@
  * @module injectionKeys
  */
 
-import type { InjectionKey, Ref } from 'vue'
+import type { InjectionKey, Ref, Component, ShallowRef } from 'vue'
 import type { BlogPostEntry } from './types'
+
+/**
+ * Type for VitePress's useData return value (subset we use).
+ */
+export interface VitePressPageData {
+  frontmatter: Ref<Record<string, unknown>>
+  page: Ref<{ relativePath: string; filePath?: string }>
+}
+
+/**
+ * Type for VitePress's withBase function.
+ */
+export type WithBaseFunction = (path: string) => string
+
+/**
+ * Injection key for the base theme layout component.
+ *
+ * This key is used internally by the plugin to provide the base layout
+ * to BlogPostLayout without requiring a direct import of DefaultTheme.
+ *
+ * @internal
+ */
+export const baseLayoutKey: InjectionKey<Component> = Symbol('baseLayout')
+
+/**
+ * Injection key for VitePress page data.
+ * 
+ * This provides access to useData() result without components needing to import
+ * directly from 'vitepress', which causes SSR issues.
+ * The value is a ShallowRef that gets populated after VitePress is loaded.
+ * 
+ * @internal
+ */
+export const vitePressDataKey: InjectionKey<ShallowRef<VitePressPageData | null>> = Symbol('vitePressData')
+
+/**
+ * Injection key for VitePress's withBase utility.
+ * The value is a ShallowRef that gets populated after VitePress is loaded.
+ * 
+ * @internal
+ */
+export const withBaseKey: InjectionKey<ShallowRef<WithBaseFunction | null>> = Symbol('withBase')
 
 /**
  * Injection key for blog posts data.

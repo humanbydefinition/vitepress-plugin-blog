@@ -4,10 +4,10 @@
  * @module composables/useBlogNavigation
  */
 
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import type { ComputedRef } from 'vue'
-import { useData } from 'vitepress'
 import { useBlogPosts } from './useBlogPosts'
+import { vitePressDataKey } from '../injectionKeys'
 import type { BlogPostEntry } from '../types'
 
 /**
@@ -25,31 +25,30 @@ export interface UseBlogNavigationReturn {
 }
 
 /**
- * Extracts the slug from the current page.
- * 
- * Tries multiple sources in order:
- * 1. frontmatter.slug
- * 2. frontmatter.permalink (last segment)
- * 3. file path (last segment without .md)
+ * Extracts the slug from the current page using injected VitePress data.
  */
 function useCurrentSlug(): ComputedRef<string> {
-  const { frontmatter, page } = useData()
+  const vitePressDataRef = inject(vitePressDataKey)
 
   return computed(() => {
-    const fm = frontmatter.value as Record<string, unknown>
+    const data = vitePressDataRef?.value
+    if (!data) return ''
+    
+    const fm = data.frontmatter?.value as Record<string, unknown> | undefined
+    const pageData = data.page?.value
 
     // Try explicit slug first
-    if (typeof fm.slug === 'string' && fm.slug.trim()) {
+    if (fm && typeof fm.slug === 'string' && fm.slug.trim()) {
       return fm.slug.trim()
     }
 
     // Try permalink
-    if (typeof fm.permalink === 'string' && fm.permalink.trim()) {
+    if (fm && typeof fm.permalink === 'string' && fm.permalink.trim()) {
       return fm.permalink.replace(/\/$/, '').split('/').pop() ?? ''
     }
 
     // Fall back to file path
-    const relativePath = page.value.relativePath ?? ''
+    const relativePath = pageData?.relativePath ?? ''
     return relativePath
       .replace(/index\.md$/i, '')
       .split('/')

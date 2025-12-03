@@ -1,17 +1,12 @@
 import { defineConfig } from 'vitepress'
-import { fileURLToPath } from 'url'
-import { dirname, resolve } from 'path'
-import { generateBlogSidebarFromFiles } from 'vitepress-plugin-blog/sidebar'
-import { blogPlugin } from 'vitepress-plugin-blog/plugin'
+import { defineBlogConfig } from 'vitepress-plugin-blog/config'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const pluginPath = resolve(__dirname, '../../packages/vitepress-plugin-blog/dist')
-const docsDir = resolve(__dirname, '..')
-
-// Sidebar options - shared between static generation and HMR
-const sidebarOptions = {
-  recentPostsCount: 5,
-}
+// Define blog configuration - paths are auto-detected!
+const blog = defineBlogConfig({
+  sidebar: {
+    recentPostsCount: 5,
+  }
+})
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -31,31 +26,7 @@ export default defineConfig({
   ],
 
   vite: {
-    plugins: [
-      blogPlugin({
-        sidebar: sidebarOptions,
-      }),
-    ],
-    resolve: {
-      alias: [
-        {
-          find: /^vitepress-plugin-blog\/style\.css$/,
-          replacement: resolve(pluginPath, 'style.css'),
-        },
-        {
-          find: /^vitepress-plugin-blog\/sidebar$/,
-          replacement: resolve(pluginPath, 'sidebar.js'),
-        },
-        {
-          find: /^vitepress-plugin-blog\/plugin$/,
-          replacement: resolve(pluginPath, 'plugin.js'),
-        },
-        {
-          find: /^vitepress-plugin-blog$/,
-          replacement: resolve(pluginPath, 'index.js'),
-        },
-      ],
-    },
+    plugins: [blog.plugin],
   },
 
   themeConfig: {
@@ -77,7 +48,7 @@ export default defineConfig({
           ]
         }
       ],
-      '/blog/': generateBlogSidebarFromFiles(docsDir, sidebarOptions),
+      '/blog/': blog.sidebar,
     },
 
     socialLinks: [

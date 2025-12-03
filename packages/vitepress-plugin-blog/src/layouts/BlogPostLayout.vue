@@ -1,12 +1,12 @@
 <template>
-  <Layout>
+  <component :is="Layout" v-if="Layout">
     <!-- Post Header (before content) -->
     <template #doc-before>
       <article class="blog-post">
         <header class="blog-post__meta">
           <!-- Breadcrumb Navigation -->
           <p class="blog-post__breadcrumbs">
-            <a :href="withBase('/blog/')">Blog</a>
+            <a :href="getUrl('/blog/')">Blog</a>
             <span aria-hidden="true"> / </span>
             <span>{{ frontmatter.title }}</span>
           </p>
@@ -46,8 +46,8 @@
           </div>
 
           <!-- Tags -->
-          <ul v-if="frontmatter.tags?.length" class="blog-post__tags">
-            <li v-for="tag in frontmatter.tags" :key="tag">#{{ tag }}</li>
+          <ul v-if="(frontmatter.tags as string[] | undefined)?.length" class="blog-post__tags">
+            <li v-for="tag in (frontmatter.tags as string[])" :key="tag">#{{ tag }}</li>
           </ul>
 
           <!-- Cover Image -->
@@ -73,7 +73,7 @@
         >
           <a
             v-if="prevPost"
-            :href="withBase(prevPost.url)"
+            :href="getUrl(prevPost.url)"
             class="blog-post__pagination-link prev"
           >
             <span class="pagination-label">← Newer</span>
@@ -84,7 +84,7 @@
 
           <a
             v-if="nextPost"
-            :href="withBase(nextPost.url)"
+            :href="getUrl(nextPost.url)"
             class="blog-post__pagination-link next"
           >
             <span class="pagination-label">Older →</span>
@@ -93,7 +93,7 @@
         </nav>
       </footer>
     </template>
-  </Layout>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -111,12 +111,11 @@
  *
  * @component
  */
-import { computed } from 'vue'
-import DefaultTheme from 'vitepress/theme'
-import { useData, withBase } from 'vitepress'
-import { useBlogNavigation } from '../composables/useBlogNavigation'
+import { computed, inject } from 'vue'
 import { formatDate } from '../utils/date'
 import { isGitHubUsername, getGitHubAvatarUrl } from '../utils/author'
+import { baseLayoutKey, vitePressDataKey, withBaseKey } from '../injectionKeys'
+import { useBlogPosts } from '../composables/useBlogPosts'
 import type { BlogPostEntry } from '../types'
 
 // ============================================================================
@@ -132,9 +131,76 @@ defineProps<{
 // Setup
 // ============================================================================
 
-const Layout = DefaultTheme.Layout
-const { frontmatter } = useData()
-const { currentPost, prevPost, nextPost } = useBlogNavigation()
+// Get the base layout from injection (provided by withBlogTheme)
+// This avoids importing DefaultTheme directly which causes SSR issues
+const Layout = inject(baseLayoutKey)
+
+if (!Layout) {
+  console.error('[vitepress-plugin-blog] Base layout not found. Make sure to use withBlogTheme() to wrap your theme.')
+}
+
+// Get VitePress data from injection
+const vitePressDataRef = inject(vitePressDataKey)
+const withBaseRef = inject(withBaseKey)
+
+// Get blog posts for navigation
+const { posts: blogPosts } = useBlogPosts()
+
+// Computed frontmatter from injected VitePress data
+// vitePressDataRef is ShallowRef<VitePressPageData | null>
+// VitePressPageData.frontmatter is Ref<Record<string, unknown>>
+const frontmatter = computed(() => {
+  const data = vitePressDataRef?.value
+  if (!data) return {}
+  return data.frontmatter?.value ?? {}
+})
+
+// Get current page info for finding the current post
+const page = computed(() => {
+  const data = vitePressDataRef?.value
+  if (!data) return { relativePath: '' }
+  return data.page?.value ?? { relativePath: '' }
+})
+
+// Find current post from blog posts based on URL
+const currentPost = computed<BlogPostEntry | null>(() => {
+  const relativePath = page.value.relativePath
+  if (!relativePath) return null
+  
+  // Convert relative path to URL format
+  const url = '/' + relativePath.replace(/\.md$/, '').replace(/index$/, '')
+  
+  return blogPosts.value.find(post => {
+    const postUrl = post.url.replace(/\/$/, '')
+    const pageUrl = url.replace(/\/$/, '')
+    return postUrl === pageUrl || post.slug === pageUrl.split('/').pop()
+  }) ?? null
+})
+
+// Find current index for prev/next navigation
+const currentIndex = computed(() => {
+  if (!currentPost.value) return -1
+  return blogPosts.value.findIndex(p => p.url === currentPost.value?.url)
+})
+
+// Previous post (newer)
+const prevPost = computed<BlogPostEntry | null>(() => {
+  if (currentIndex.value <= 0) return null
+  return blogPosts.value[currentIndex.value - 1]
+})
+
+// Next post (older)
+const nextPost = computed<BlogPostEntry | null>(() => {
+  if (currentIndex.value < 0 || currentIndex.value >= blogPosts.value.length - 1) return null
+  return blogPosts.value[currentIndex.value + 1]
+})
+
+/**
+ * Helper to apply withBase if available, otherwise return path as-is
+ */
+function getUrl(path: string): string {
+  return withBaseRef?.value?.(path) ?? path
+}
 
 // ============================================================================
 // Computed
